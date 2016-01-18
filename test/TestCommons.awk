@@ -114,6 +114,13 @@ BEGIN {
         assertEqual(escape("\""), "\\\"")
         assertEqual(escape("\"foo\""), "\\\"foo\\\"")
     }
+    T("unescape()", 4)
+    {
+        assertEqual(unescape(""), "")
+        assertEqual(unescape("foo"), "foo")
+        assertEqual(unescape("\\\""), "\"")
+        assertEqual(unescape("\\\"foo\\\""), "\"foo\"")
+    }
     T("parameterize()", 10)
     {
         assertEqual(parameterize(""), "''")
@@ -126,6 +133,19 @@ BEGIN {
         assertEqual(parameterize("foo bar", "\""), "\"foo bar\"")
         assertEqual(parameterize("foo 'bar", "\""), "\"foo 'bar\"")
         assertEqual(parameterize("foo \"bar\"", "\""), "\"foo \\\"bar\\\"\"")
+    }
+    T("unparameterize()", 10)
+    {
+        assertEqual(unparameterize("''"), "")
+        assertEqual(unparameterize("'foo'"), "foo")
+        assertEqual(unparameterize("'foo bar'"), "foo bar")
+        assertEqual(unparameterize("'foo '\\''bar'"), "foo 'bar")
+        assertEqual(unparameterize("'foo \"bar\"'"), "foo \"bar\"")
+        assertEqual(unparameterize("\"\""), "")
+        assertEqual(unparameterize("\"foo\""), "foo")
+        assertEqual(unparameterize("\"foo bar\""), "foo bar")
+        assertEqual(unparameterize("\"foo 'bar\""), "foo 'bar")
+        assertEqual(unparameterize("\"foo \\\"bar\\\"\""), "foo \"bar\"")
     }
     T("toString()", 4)
     {

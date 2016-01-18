@@ -50,19 +50,27 @@ function man(    text) {
     return system("pandoc -s -t man " ManMarkdown " -o " Man)
 }
 
-function readme(    code, col, cols, content, group, i, j, language, r, rows, text) {
+function readme(    code, col, cols, content, group, i, j, num, language, r, rows, text) {
     text = readFrom(ReadmeTemplate)
 
     content = getOutput("gawk -f translate.awk -- -no-ansi -h")
     gsub(/\$usage\$/, content, text)
 
     initBiDi(); initLocale()
-    rows = int(length(Locale) / 3) + 1
+    # number of language codes with stable support
+    num = 0
+    for (code in Locale)
+        if (Locale[code]["support"] != "unstable")
+            num++
+    rows = int(num / 3) + 1
     cols[0][0] = cols[1][0] = cols[2][0] = NULLSTR
     i = 0
     saveSortedIn = PROCINFO["sorted_in"]
     PROCINFO["sorted_in"] = "compName"
     for (code in Locale) {
+        # Ignore unstable languages
+        if (Locale[code]["support"] == "unstable") continue
+
         col = int(i / rows)
         append(cols[col], code)
         i++
@@ -92,8 +100,8 @@ function readme(    code, col, cols, content, group, i, j, language, r, rows, te
 function wiki(    code, group, iso, language, saveSortedIn) {
     initBiDi(); initLocale()
 
-    print "***" length(Locale) "*** *languages in total. "              \
-        "Generated from the source code of Translate Shell " Version ".*\n" > WikiLanguages
+    #print "***" length(Locale) "*** *languages in total. "
+    print "*Generated from the source code of Translate Shell " Version ".*\n" > WikiLanguages
     print "*Version: [English](https://github.com/soimort/translate-shell/wiki/Languages) " \
         "| [Chinese Simplified](https://github.com/soimort/translate-shell/wiki/Languages-%28%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87%29)*\n" > WikiLanguages
     print "| Code | Name | Family | [Writing system](https://github.com/soimort/translate-shell/wiki/Writing-Systems-and-Fonts) | Is [RTL](http://en.wikipedia.org/wiki/Right-to-left)? | Has dictionary? |" > WikiLanguages
@@ -101,10 +109,14 @@ function wiki(    code, group, iso, language, saveSortedIn) {
     saveSortedIn = PROCINFO["sorted_in"]
     PROCINFO["sorted_in"] = "@ind_num_asc"
     for (code in Locale) {
+        # Ignore unstable languages
+        if (Locale[code]["support"] == "unstable") continue
+
         split(getISO(code), group, "-")
         iso = group[1]
         split(getName(code), group, " ")
-        language = length(group) == 1 ? group[1] "_language" : join(group, "_")
+        language = length(group) == 1 ? group[1] "_language" :
+            group[2] ~ /^\(.*\)$/ ? group[1] "_language" : join(group, "_")
         print sprintf("| **`%s`** <br/> [`%s`](%s) | **[%s](%s)** <br/> **%s** | %s | `%s` | %s | %s |",
                       getCode(code), iso, "http://www.ethnologue.com/language/" iso,
                       getName(code), "http://en.wikipedia.org/wiki/" language, getEndonym(code),
@@ -124,6 +136,25 @@ function doc() {
     return 0
 }
 
+function readSqueezed(fileName, squeezed,    group, line, ret) {
+    if (fileName ~ /\*$/) # glob simulation
+        return readSqueezed(fileName ".awk", squeezed)
+
+    ret = NULLSTR
+    if (fileExists(fileName))
+        while (getline line < fileName) {
+            match(line, /^[[:space:]]*@include[[:space:]]*"(.*)"$/, group)
+            if (RSTART) { # @include
+                if (ret) ret = ret RS
+                ret = ret readSqueezed(group[1] ".awk", squeezed)
+            } else if (!squeezed || line = squeeze(line)) { # effective LOC
+                if (ret) ret = ret RS
+                ret = ret line
+            }
+        }
+    return ret
+}
+
 function build(target, type,    group, inline, line, temp) {
     # Default target: bash
     if (!target) target = "bash"
@@ -134,32 +165,17 @@ function build(target, type,    group, inline, line, temp) {
 
         print "#!/usr/bin/env " target > Trans
 
-        print "#" > Trans
-        if (fileExists("DISCLAIMER"))
+        if (fileExists("DISCLAIMER")) {
+            print "#" > Trans
             while (getline line < "DISCLAIMER")
                 print "# " line > Trans
-        print "#" > Trans
+            print "#" > Trans
+        }
 
         print "if ! [[ $LANG =~ '[UTF|utf]-?8$' ]]; then export LANG=en_US.UTF-8; fi" > Trans
 
         print "read -r -d '' TRANS_PROGRAM << 'EOF'" > Trans
-        if (fileExists(EntryPoint))
-            while (getline line < EntryPoint) {
-                match(line, /^[[:space:]]*@include[[:space:]]*"(.*)"$/, group)
-                if (RSTART) {
-                    # Include file
-                    if (fileExists(group[1] ".awk"))
-                        while (getline inline < (group[1] ".awk"))
-                            if (inline = squeeze(inline))
-                                print inline > Trans # effective LOC
-                } else {
-                    if (line && line !~ /^[[:space:]]*#!/) {
-                        # Remove preceding spaces
-                        gsub(/^[[:space:]]+/, "", line)
-                        print line > Trans
-                    }
-                }
-            }
+        print readSqueezed(EntryPoint, TRUE) > Trans
         print "EOF" > Trans
 
         print "read -r -d '' TRANS_MANPAGE << 'EOF'" > Trans
@@ -185,24 +201,11 @@ function build(target, type,    group, inline, line, temp) {
     } else if (target == "awk" || target == "gawk") {
 
         "uname -s" | getline temp
+        print (temp == "Darwin" ?
+               "#!/usr/bin/env gawk -f" : # OS X
+               "#!/usr/bin/gawk -f") > TransAwk
 
-        if (fileExists(EntryPoint))
-            while (getline line < EntryPoint) {
-                match(line, /^[[:space:]]*@include[[:space:]]*"(.*)"$/, group)
-                if (RSTART) {
-                    # Include file
-                    if (fileExists(group[1] ".awk"))
-                        while (getline inline < (group[1] ".awk"))
-                            if (inline = squeeze(inline, 1))
-                                print inline > TransAwk
-                } else {
-                    if (temp == "Darwin" && line == "#!/usr/bin/gawk -f")
-                        # OS X: gawk not in /usr/bin, use a better shebang
-                        print "#!/usr/bin/env gawk -f" > TransAwk
-                    else
-                        print line > TransAwk
-                }
-            }
+        print readSqueezed(EntryPoint, TRUE) > TransAwk
 
         ("chmod +x " parameterize(TransAwk)) | getline
         return 0

@@ -381,7 +381,7 @@ function initLocale(    i) {
     Locale["tk"]["script"]             = "Latn"
 
     #? Tatar
-    Locale["tt"]["support"]            = "unstable"
+    Locale["tt"]["support"]            = "yandex-only"
     Locale["tt"]["name"]               = "Tatar"
     Locale["tt"]["endonym"]            = "татарча"
     #Locale["tt"]["translations-of"]
@@ -1391,18 +1391,31 @@ function initLocale(    i) {
     Locale["ru"]["script"]             = "Cyrl"
     Locale["ru"]["dictionary"]         = "true" # has dictionary
 
-    #68 Serbian, Cyrillic alphabet
-    Locale["sr"]["name"]               = "Serbian"
-    Locale["sr"]["endonym"]            = "српски"
-    Locale["sr"]["translations-of"]    = "Преводи за „%s“"
-    Locale["sr"]["definitions-of"]     = "Дефиниције за %s"
-    Locale["sr"]["synonyms"]           = "Синоними"
-    Locale["sr"]["examples"]           = "Примери"
-    Locale["sr"]["see-also"]           = "Погледајте такође"
-    Locale["sr"]["family"]             = "Indo-European"
-    Locale["sr"]["iso"]                = "srp"
-    Locale["sr"]["glotto"]             = "serb1264"
-    Locale["sr"]["script"]             = "Cyrl"
+    #68a Serbian, Cyrillic alphabet
+    Locale["sr-Cyrl"]["name"]          = "Serbian (Cyrillic)"
+    Locale["sr-Cyrl"]["endonym"]       = "српски"
+    Locale["sr-Cyrl"]["translations-of"] = "Преводи за „%s“"
+    Locale["sr-Cyrl"]["definitions-of"]  = "Дефиниције за %s"
+    Locale["sr-Cyrl"]["synonyms"]      = "Синоними"
+    Locale["sr-Cyrl"]["examples"]      = "Примери"
+    Locale["sr-Cyrl"]["see-also"]      = "Погледајте такође"
+    Locale["sr-Cyrl"]["family"]        = "Indo-European"
+    Locale["sr-Cyrl"]["iso"]           = "srp-Cyrl"
+    Locale["sr-Cyrl"]["glotto"]        = "serb1264"
+    Locale["sr-Cyrl"]["script"]        = "Cyrl"
+
+    #68b Serbian, Latin alphabet
+    Locale["sr-Latn"]["name"]          = "Serbian (Latin)"
+    Locale["sr-Latn"]["endonym"]       = "srpski"
+    Locale["sr-Latn"]["translations-of"] = "Prevodi za „%s“"
+    Locale["sr-Latn"]["definitions-of"]  = "Definicije za %s"
+    Locale["sr-Latn"]["synonyms"]      = "Sinonimi"
+    Locale["sr-Latn"]["examples"]      = "Primeri"
+    Locale["sr-Latn"]["see-also"]      = "Pogledajte takođe"
+    Locale["sr-Latn"]["family"]        = "Indo-European"
+    Locale["sr-Latn"]["iso"]           = "srp-Latn"
+    Locale["sr-Latn"]["glotto"]        = "serb1264"
+    Locale["sr-Latn"]["script"]        = "Latn"
 
     #69 Sesotho (Southern Sotho)
     Locale["st"]["name"]               = "Sesotho"
@@ -1693,12 +1706,61 @@ function initLocale(    i) {
     Locale["zu"]["glotto"]             = "zulu1248"
     Locale["zu"]["script"]             = "Latn"
 
+    #* Hmong Daw
+    Locale["mww"]["support"]           = "bing-only"
+    Locale["mww"]["name"]              = "Hmong Daw"
+    Locale["mww"]["endonym"]           = "Hmoob Daw"
+    Locale["mww"]["family"]            = "Hmong-Mien"
+    Locale["mww"]["iso"]               = "mww"
+    Locale["mww"]["glotto"]            = "hmon1333"
+    Locale["mww"]["script"]            = "Latn"
+
+    #* Querétaro Otomi
+    Locale["otq"]["support"]           = "bing-only"
+    Locale["otq"]["name"]              = "Querétaro Otomi"
+    Locale["otq"]["endonym"]           = "Hñąñho"
+    Locale["otq"]["family"]            = "Oto-Manguean"
+    Locale["otq"]["iso"]               = "otq"
+    Locale["otq"]["glotto"]            = "quer1236"
+    Locale["otq"]["script"]            = "Latn"
+
+    #* Yucatec Maya
+    Locale["yua"]["support"]           = "bing-only"
+    Locale["yua"]["name"]              = "Yucatec Maya"
+    Locale["yua"]["endonym"]           = "Màaya T'àan"
+    Locale["yua"]["family"]            = "Mayan"
+    Locale["yua"]["iso"]               = "yua"
+    Locale["yua"]["glotto"]            = "yuca1254"
+    Locale["yua"]["script"]            = "Latn"
+
+    #* Klingon, Latin alphabet
+    Locale["tlh"]["support"]           = "bing-only"
+    Locale["tlh"]["name"]              = "Klingon"
+    Locale["tlh"]["endonym"]           = "tlhIngan Hol"
+    Locale["tlh"]["family"]            = "Artificial Language"
+    Locale["tlh"]["iso"]               = "tlh"
+    #Locale["tlh"]["glotto"]
+    Locale["tlh"]["script"]            = "Latn"
+
+    #* Klingon, pIqaD
+    Locale["tlh-Qaak"]["support"]      = "bing-only"
+    Locale["tlh-Qaak"]["name"]         = "Klingon (pIqaD)"
+    Locale["tlh-Qaak"]["endonym"]      = " "
+    Locale["tlh-Qaak"]["family"]       = "Artificial Language"
+    Locale["tlh-Qaak"]["iso"]          = "tlh"
+    #Locale["tlh-Qaak"]["glotto"]
+    Locale["tlh-Qaak"]["script"]       = "Piqd"
+
     for (i in Locale) {
         # Initialize strings for displaying endonyms of locales
         Locale[i]["display"] = show(Locale[i]["endonym"], i)
 
         # ISO 639-3 codes as aliases
         LocaleAlias[Locale[i]["iso"]] = i
+
+        # Names and endonyms as aliases
+        LocaleAlias[tolower(Locale[i]["name"])] = i
+        LocaleAlias[tolower(Locale[i]["endonym"])] = i
     }
 
     # Other aliases
@@ -1710,20 +1772,35 @@ function initLocale(    i) {
     LocaleAlias["mo"] = "ro" # Moldavian or Moldovan considered a variant of the Romanian language
     LocaleAlias["nb"] = "no" # Google Translate does not distinguish between Bokmål and Nynorsk
     LocaleAlias["nn"] = "no"
-    LocaleAlias["sh"] = "sr" # Serbo-Croatian: default to Serbian
-    LocaleAlias["zh"] = "zh-CN" # Chinese: default to Chinese Simplified
-    LocaleAlias["zho"] = "zh-CN"
+    LocaleAlias["sh"]      = "sr-Cyrl" # Serbo-Croatian: default to Serbian
+    LocaleAlias["sr"]      = "sr-Cyrl" # Serbian: default to Serbian Cyrillic
+    LocaleAlias["srp"]     = "sr-Cyrl"
+    LocaleAlias["serbian"] = "sr-Cyrl"
+    LocaleAlias["zh"]      = "zh-CN" # Chinese: default to Chinese Simplified
+    LocaleAlias["zh-CHS"]  = "zh-CN"
+    LocaleAlias["zh-CHT"]  = "zh-TW"
+    LocaleAlias["zho"]     = "zh-CN"
+    LocaleAlias["chinese"] = "zh-CN"
+    LocaleAlias["tlh-Latn"] = "tlh"
+    LocaleAlias["tlh-Piqd"] = "tlh-Qaak"
     # TODO: more aliases
 }
 
 # Get locale key by language code or alias.
-function getCode(code) {
+function getCode(code,    group) {
     if (code == "auto" || code in Locale)
         return code
     else if (code in LocaleAlias)
         return LocaleAlias[code]
-    else
-        return # return nothing if not found
+    else if (tolower(code) in LocaleAlias)
+        return LocaleAlias[tolower(code)]
+
+    # Remove unidentified region or script code
+    match(code, /^([[:alpha:]][[:alpha:]][[:alpha:]]?)-(.*)$/, group)
+    if (group[1])
+        return group[1]
+
+    return # return nothing if not found
 }
 
 # Return the name of a language.
@@ -1843,6 +1920,7 @@ function scriptName(code) {
     case "Mlym": return "Malayalam"
     case "Mymr": return "Myanmar"
     case "Orya": return "Oriya"
+    case "Piqd": return "Klingon (pIqaD)"
     case "Sinh": return "Sinhala"
     case "Taml": return "Tamil"
     case "Telu": return "Telugu"
@@ -1854,22 +1932,26 @@ function scriptName(code) {
 
 # Return detailed information of a language as a string.
 function getDetails(code,    group, iso, language, script) {
-    if (code == "auto" || !getCode(code))
-        return prettify("languages", sprintf("%-22s%s\n", "Unknown code", ansi("bold", code)))
+    if (code == "auto" || !getCode(code)) {
+        e("[ERROR] Language not found: " code "\n"                      \
+          "        Run '-reference / -R' to see a list of available languages.")
+        exit 1
+    }
 
     script = scriptName(getScript(code))
     if (isRTL(code)) script = script " (R-to-L)"
     split(getISO(code), group, "-")
     iso = group[1]
     split(getName(code), group, " ")
-    language = length(group) == 1 ? group[1] "_language" : join(group, "_")
+    language = length(group) == 1 ? group[1] "_language" :
+        group[2] ~ /^\(.*\)$/ ? group[1] "_language" : join(group, "_")
     return ansi("bold", sprintf("%s\n", getDisplay(code)))              \
         sprintf("%-22s%s\n", "Name", ansi("bold", getName(code)))       \
         sprintf("%-22s%s\n", "Family", ansi("bold", getFamily(code)))   \
         sprintf("%-22s%s\n", "Writing system", ansi("bold", script))    \
         sprintf("%-22s%s\n", "Code", ansi("bold", getCode(code)))       \
         sprintf("%-22s%s\n", "ISO 639-3", ansi("bold", iso))            \
-        sprintf("%-22s%s\n", "Ethnologue", ansi("bold", "http://www.ethnologue.com/language/" iso)) \
+        sprintf("%-22s%s\n", "SIL", ansi("bold", "http://www-01.sil.org/iso639-3/documentation.asp?id=" iso)) \
         sprintf("%-22s%s\n", "Glottolog", getGlotto(code) ?
                 ansi("bold", "http://glottolog.org/resource/languoid/id/" getGlotto(code)) : "") \
         sprintf("%-22s%s", "Wikipedia", ansi("bold", "http://en.wikipedia.org/wiki/" language))

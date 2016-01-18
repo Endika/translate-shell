@@ -5,6 +5,7 @@
 # Initialize constants.
 function initConst() {
     NULLSTR = ""
+    TRUE = 1
 
     STDIN  = "/dev/stdin"
     STDOUT = "/dev/stdout"
@@ -208,6 +209,14 @@ function escape(string) {
     return string
 }
 
+# Reverse of escape(string).
+function unescape(string) {
+    gsub(/\\\"/, "\"", string)
+    gsub(/\\\\/, "\\", string) # substitute backslashes last
+
+    return string
+}
+
 # Return the escaped, quoted string.
 function parameterize(string, quotationMark) {
     if (!quotationMark)
@@ -219,6 +228,22 @@ function parameterize(string, quotationMark) {
     } else {
         return "\"" escape(string) "\""
     }
+}
+
+# Reverse of parameterize(string, quotationMark).
+function unparameterize(string,    temp) {
+    match(string, /^'(.*)'$/, temp)
+    if (temp[0]) { # use temp[0] (there IS a match for quoted empty string)
+        string = temp[1]
+        gsub(/'\\''/, "'", string)
+        return string
+    }
+    match(string, /^"(.*)"$/, temp)
+    if (temp[0]) {
+        string = temp[1]
+        return unescape(string)
+    }
+    return string
 }
 
 # Convert any value to human-readable string.

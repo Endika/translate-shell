@@ -17,6 +17,9 @@ function init() {
 
     Option["debug"] = 0
 
+    # Translation engine
+    Option["engine"] = "google"
+
     # Display
     Option["verbose"] = 1
     Option["show-original"] = 1
@@ -31,10 +34,12 @@ function init() {
     Option["width"] = ENVIRON["COLUMNS"] ? ENVIRON["COLUMNS"] - 2 : 0
     Option["indent"] = 4
     Option["no-ansi"] = 0
+    Option["no-bidi"] = 0
     Option["theme"] = "default"
 
     # Audio
     Option["play"] = 0
+    Option["narrator"] = "default"
     Option["player"] = ENVIRON["PLAYER"]
 
     # Terminal paging and browsing
@@ -44,7 +49,10 @@ function init() {
 
     # Networking
     Option["proxy"] = ENVIRON["HTTP_PROXY"] ? ENVIRON["HTTP_PROXY"] : ENVIRON["http_proxy"]
-    Option["user-agent"] = ENVIRON["USER_AGENT"]
+    Option["user-agent"] = ENVIRON["USER_AGENT"] ? ENVIRON["USER_AGENT"] :
+        "Mozilla/5.0 (X11; Linux x86_64) "                   \
+        "AppleWebKit/602.1 (KHTML, like Gecko) Version/8.0 " \
+        "Safari/602.1 Epiphany/3.18.2"
 
     # Interactive shell
     Option["no-rlwrap"] = 0
@@ -105,6 +113,10 @@ function initMisc(    group, temp) {
     if (Option["no-ansi"])
         delete AnsiCode
 
+    # Disable conversion of bidirectional texts if required
+    if (Option["no-bidi"])
+        BiDi = BiDiNoPad = NULLSTR
+
     # Initialize audio player or speech synthesizer
     if (Option["play"]) {
         if (!Option["player"]) {
@@ -150,6 +162,7 @@ BEGIN {
 
     # Command-line options override initialization script
     pos = 0
+    noargc = 0
     while (ARGV[++pos]) {
         ## Information options
 
@@ -207,6 +220,13 @@ BEGIN {
             continue
         }
 
+        # -S, -list-engines
+        match(ARGV[pos], /^--?(S|list-e(n(g(i(n(es?)?)?)?)?)?)$/)
+        if (RSTART) {
+            InfoOnly = "list-engines"
+            continue
+        }
+
         # -U, -upgrade
         match(ARGV[pos], /^--?(U|upgrade)$/)
         if (RSTART) {
@@ -218,6 +238,25 @@ BEGIN {
         match(ARGV[pos], /^--?(N|nothing)$/)
         if (RSTART) {
             InfoOnly = "nothing"
+            continue
+        }
+
+        ## Translator options
+
+        # -e ENGINE, -engine ENGINE
+        match(ARGV[pos], /^--?(e|engine)(=(.*)?)?$/, group)
+        if (RSTART) {
+            Option["engine"] = group[2] ?
+                (group[3] ? group[3] : Option["engine"]) :
+                ARGV[++pos]
+            continue
+        }
+
+        # Shortcut format
+        # '/ENGINE'
+        match(ARGV[pos], /^\/(.*)$/, group)
+        if (RSTART) {
+            Option["engine"] = group[1]
             continue
         }
 
@@ -243,6 +282,13 @@ BEGIN {
             Option["show-original-dictionary"] = 1
             Option["show-dictionary"] = 0
             Option["show-alternatives"] = 0
+            continue
+        }
+
+        # -identify
+        match(ARGV[pos], /^--?id(e(n(t(i(fy?)?)?)?)?)?$/)
+        if (RSTART) {
+            Option["verbose"] = -1
             continue
         }
 
@@ -350,6 +396,13 @@ BEGIN {
             continue
         }
 
+        # -no-bidi
+        match(ARGV[pos], /^--?no-bidi/)
+        if (RSTART) {
+            Option["no-bidi"] = 1
+            continue
+        }
+
         ## Audio options
 
         # -p, -play
@@ -359,10 +412,27 @@ BEGIN {
             continue
         }
 
+        # -speak
+        match(ARGV[pos], /^--?sp(e(ak?)?)?$/)
+        if (RSTART) {
+            Option["play"] = 2
+            continue
+        }
+
+        # -n VOICE, -narrator VOICE
+        match(ARGV[pos], /^--?(n|narrator)(=(.*)?)?$/, group)
+        if (RSTART) {
+            if (!Option["play"]) Option["play"] = 1 # -play by default
+            Option["narrator"] = group[2] ?
+                (group[3] ? group[3] : Option["narrator"]) :
+                ARGV[++pos]
+            continue
+        }
+
         # -player PROGRAM
         match(ARGV[pos], /^--?player(=(.*)?)?$/, group)
         if (RSTART) {
-            Option["play"] = 1
+            if (!Option["play"]) Option["play"] = 1 # -play by default
             Option["player"] = group[1] ?
                 (group[2] ? group[2] : Option["player"]) :
                 ARGV[++pos]
@@ -503,17 +573,17 @@ BEGIN {
             continue
         }
 
-        # -s CODE, -sl CODE, -source CODE
-        match(ARGV[pos], /^--?s(o(u(r(ce?)?)?)?|l)?(=(.*)?)?$/, group)
+        # -s CODE, -sl CODE, -source CODE, -f CODE, -from CODE
+        match(ARGV[pos], /^--?(s(o(u(r(ce?)?)?)?|l)?|f|from)(=(.*)?)?$/, group)
         if (RSTART) {
-            Option["sl"] = group[5] ?
-                (group[6] ? group[6] : Option["sl"]) :
+            Option["sl"] = group[6] ?
+                (group[7] ? group[7] : Option["sl"]) :
                 ARGV[++pos]
             continue
         }
 
-        # -t CODES, -tl CODE, -target CODES
-        match(ARGV[pos], /^--?t(a(r(g(et?)?)?)?|l)?(=(.*)?)?$/, group)
+        # -t CODES, -tl CODES, -target CODES, -to CODES
+        match(ARGV[pos], /^--?t(a(r(g(et?)?)?)?|l|o)?(=(.*)?)?$/, group)
         if (RSTART) {
             if (group[5]) {
                 if (group[6]) split(group[6], Option["tl"], "+")
@@ -524,7 +594,7 @@ BEGIN {
 
         # Shortcut format
         # 'CODE:CODE+...' or 'CODE=CODE+...'
-        match(ARGV[pos], /^[{(\[]?([[:alpha:]][[:alpha:]][[:alpha:]]?(-[[:alpha:]][[:alpha:]])?)?(:|=)((@?[[:alpha:]][[:alpha:]][[:alpha:]]?(-[[:alpha:]][[:alpha:]])?\+)*(@?[[:alpha:]][[:alpha:]][[:alpha:]]?(-[[:alpha:]][[:alpha:]])?)?)[})\]]?$/, group)
+        match(ARGV[pos], /^[{(\[]?([[:alpha:]][[:alpha:]][[:alpha:]]?(-[[:alpha:]][[:alpha:]][[:alpha:]]?[[:alpha:]]?)?)?(:|=)((@?[[:alpha:]][[:alpha:]][[:alpha:]]?(-[[:alpha:]][[:alpha:]][[:alpha:]]?[[:alpha:]]?)?\+)*(@?[[:alpha:]][[:alpha:]][[:alpha:]]?(-[[:alpha:]][[:alpha:]][[:alpha:]]?[[:alpha:]]?)?)?)[})\]]?$/, group)
         if (RSTART) {
             if (group[1]) Option["sl"] = group[1]
             if (group[4]) split(group[4], Option["tl"], "+")
@@ -555,7 +625,8 @@ BEGIN {
             break # no more option from here
         }
 
-        break # no more option from here
+        # non-option argument
+        noargv[noargc++] = ARGV[pos]
     }
 
     # Handle interactive shell
@@ -589,6 +660,10 @@ BEGIN {
     case "list":
         print getList(Option["tl"])
         exit ExitCode
+    case "list-engines":
+        for (translator in Translator)
+            print (Option["engine"] == translator ? "* " : "  ") translator
+        exit ExitCode
     case "upgrade":
         upgrade()
         exit ExitCode
@@ -602,22 +677,23 @@ BEGIN {
     if (Option["interactive"])
         welcome()
 
-    if (pos < ARGC) {
-        # More parameters
+    # More remaining non-option arguments
+    if (pos < ARGC)
+        for (i = pos; i < ARGC; i++)
+            noargv[noargc++] = ARGV[i]
 
-        # Translate remaining parameters
-        for (i = pos; i < ARGC; i++) {
+    if (noargc) {
+        # Translate all non-option arguments
+        for (i = 0; i < noargc; i++) {
             # Verbose mode: separator between sources
             if (Option["verbose"] && i > pos)
                 p(prettify("source-seperator", replicate(Option["chr-source-seperator"], Option["width"])))
 
-            translate(ARGV[i], 1) # inline mode
+            translate(noargv[i], 1) # inline mode
         }
 
         # If input not specified, we're done
     } else {
-        # No more parameter besides options
-
         # If input not specified, use stdin
         if (!Option["input"]) Option["input"] = STDIN
     }

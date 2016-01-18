@@ -9,7 +9,11 @@
 @include "include/Help"
 @include "include/Parser"
 @include "include/Theme"
+
 @include "include/Translate"
+@include "include/TranslatorInterface"
+@include "include/Translators/*"
+
 @include "include/Script"
 @include "include/REPL"
 
